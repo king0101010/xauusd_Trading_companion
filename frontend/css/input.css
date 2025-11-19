@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .trader-card {
+    @apply bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl;
+  }
+  
+  .profit-text {
+    @apply text-green-500 dark:text-green-400 font-semibold;
+  }
+  
+  .loss-text {
+    @apply text-red-500 dark:text-red-400 font-semibold;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
+  
+  .signal-buy {
+    @apply bg-green-100 dark:bg-green-900 border-l-4 border-green-500 text-green-800 dark:text-green-200;
+  }
+  
+  .signal-sell {
+    @apply bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-800 dark:text-red-200;
+  }
+  
+  .signal-hold {
+    @apply bg-yellow-100 dark:bg-yellow-900 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200;
+  }
+
+  .market-up {
+    @apply text-green-500 dark:text-green-400;
+  }
+  
+  .market-down {
+    @apply text-red-500 dark:text-red-400;
+  }
+  
+  .market-neutral {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary-500 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary-600;
+}
+
+/* Loading animations */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Chart container styles */
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+/* Simulation controls */
+.simulation-controls {
+  @apply flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg;
+}
+
+.timeline-slider {
+  @apply w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer;
+}
+
+.timeline-slider::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 bg-primary-500 rounded-full cursor-pointer;
+}
+
+.timeline-slider::-moz-range-thumb {
+  @apply w-4 h-4 bg-primary-500 rounded-full cursor-pointer border-0;
+}
+
+/* Market data badges */
+.market-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-live {
+  @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.badge-simulated {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.badge-offline {
+  @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+/* Price change indicators */
+.price-up {
+  @apply text-green-500 dark:text-green-400;
+}
+
+.price-down {
+  @apply text-red-500 dark:text-red-400;
+}
+
+.price-unchanged {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+/* Technical indicator colors */
+.rsi-overbought {
+  @apply text-red-500 dark:text-red-400;
+}
+
+.rsi-oversold {
+  @apply text-green-500 dark:text-green-400;
+}
+
+.rsi-neutral {
+  @apply text-yellow-500 dark:text-yellow-400;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trader-card {
+    @apply p-4;
+  }
+  
+  .simulation-controls {
+    @apply flex-col space-y-4;
+  }
+  
+  .chart-container {
+    height: 300px;
+  }
+}
+
+/* Dark mode transitions */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  @apply outline-2 outline-offset-2 outline-primary-500;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .trader-card {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+  }
+}

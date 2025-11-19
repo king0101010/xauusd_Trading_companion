@@ -1,0 +1,39 @@
+{
+  "name": "goldsense-ai-backend",
+  "version": "1.0.0",
+  "description": "GoldSense AI - Intelligent XAU/USD Trading Companion Backend",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "dev-full": "concurrently \"npm run dev\" \"cd ../frontend && npm run dev\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "xauusd",
+    "gold",
+    "trading",
+    "ai",
+    "prediction",
+    "lstm",
+    "xgboost",
+    "forex",
+    "trading-companion",
+    "machine-learning"
+  ],
+  "author": "GoldSense AI Team",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "goldsense-ai-frontend",
+  "version": "1.0.0",
+  "description": "GoldSense AI - Intelligent XAU/USD Trading Companion Frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tailwindcss -i ./css/input.css -o ./css/style.css --watch",
+    "build": "npx tailwindcss -i ./css/input.css -o ./css/style.css --minify",
+    "serve": "npx live-server . --port=3001 --watch=./css/style.css,./js/*.js,./index.html"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "live-server": "^1.2.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18"
+  }
+}
