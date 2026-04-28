@@ -3,6 +3,7 @@ import { sequelize } from '../config/database.js';
 
 export interface PositionAttributes {
   id?: number;
+  tradeId: number;
   type: 'LONG' | 'SHORT';
   entryPrice: number;
   currentPrice: number;
@@ -17,6 +18,7 @@ export interface PositionAttributes {
 
 class Position extends Model<PositionAttributes> implements PositionAttributes {
   declare id: number;
+  declare tradeId: number;
   declare type: 'LONG' | 'SHORT';
   declare entryPrice: number;
   declare currentPrice: number;
@@ -32,6 +34,7 @@ class Position extends Model<PositionAttributes> implements PositionAttributes {
 Position.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    tradeId: { type: DataTypes.INTEGER, allowNull: false },
     type: { type: DataTypes.ENUM('LONG', 'SHORT'), allowNull: false },
     entryPrice: { type: DataTypes.FLOAT, allowNull: false },
     currentPrice: { type: DataTypes.FLOAT, allowNull: false },

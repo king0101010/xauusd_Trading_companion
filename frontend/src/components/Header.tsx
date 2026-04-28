@@ -1,4 +1,4 @@
-import { Wifi, WifiOff, TrendingUp, TrendingDown, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Wifi, WifiOff, TrendingUp, TrendingDown, PanelRightOpen, PanelRightClose, BarChart3 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Header() {
@@ -7,6 +7,7 @@ export default function Header() {
   const balance = useStore((s) => s.balance);
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
+  const setPage = useStore((s) => s.setPage);
 
   const priceUp = (livePrice?.change ?? 0) >= 0;
 
@@ -22,7 +23,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 lg:gap-6">
+      <div className="flex items-center gap-3 lg:gap-5">
         {/* Balance */}
         <div className="hidden md:block text-right">
           <p className="text-[10px] text-gray-500">Paper Balance</p>
@@ -59,6 +60,15 @@ export default function Header() {
             </>
           )}
         </div>
+
+        {/* Analytics button */}
+        <button
+          onClick={() => setPage('analytics')}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/20 rounded-lg text-purple-300 hover:text-white hover:border-purple-500/40 transition-all text-xs font-medium"
+        >
+          <BarChart3 size={14} />
+          <span className="hidden sm:inline">Analytics</span>
+        </button>
 
         {/* Sidebar toggle */}
         <button

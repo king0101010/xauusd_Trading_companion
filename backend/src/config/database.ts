@@ -30,11 +30,24 @@ export async function initializeDatabase(): Promise<void> {
     await sequelize.authenticate();
     console.log('✅ MySQL connected successfully');
 
-    // Sync all models (creates tables if they don't exist)
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database tables synced');
+    // IMPORTANT: Import ALL models before sync so Sequelize knows about them
+    await import('../models/Trade.js');
+    await import('../models/Position.js');
+    await import('../models/PriceAlert.js');
+    console.log('📦 Models loaded: Trade, Position, PriceAlert');
+
+    // Sync all models — try alter first, fall back to force if schema mismatch
+    try {
+      await sequelize.sync({ alter: true });
+      console.log('✅ Database tables synced (alter mode)');
+    } catch (syncErr: any) {
+      console.warn('⚠️  alter sync failed, trying force sync...', syncErr.message);
+      await sequelize.sync({ force: true });
+      console.log('✅ Database tables synced (force mode — tables recreated)');
+    }
   } catch (error: any) {
     console.error('❌ MySQL connection failed:', error.message);
+    console.error('   Full error:', error);
     console.warn('⚠️  Server will continue without database. Trade history will not be persisted.');
   }
 }

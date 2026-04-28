@@ -7,6 +7,7 @@ export function useWebSocket() {
   const setLivePrice = useStore((s) => s.setLivePrice);
   const setConnected = useStore((s) => s.setConnected);
   const updatePositions = useStore((s) => s.setPositions);
+  const setLiveCandle = useStore((s) => s.setLiveCandle);
 
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
@@ -26,6 +27,10 @@ export function useWebSocket() {
       setLivePrice(data);
     });
 
+    socket.on('live-candle', (data) => {
+      setLiveCandle(data);
+    });
+
     socket.on('positions-update', (data) => {
       updatePositions(data);
     });
@@ -35,7 +40,7 @@ export function useWebSocket() {
     });
 
     socketRef.current = socket;
-  }, [setLivePrice, setConnected, updatePositions]);
+  }, [setLivePrice, setConnected, updatePositions, setLiveCandle]);
 
   useEffect(() => {
     connect();

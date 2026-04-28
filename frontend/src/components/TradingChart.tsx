@@ -13,7 +13,7 @@ export default function TradingChart() {
 
   const timeframe = useStore((s) => s.timeframe);
   const chartType = useStore((s) => s.chartType);
-  const livePrice = useStore((s) => s.livePrice);
+  const liveCandle = useStore((s) => s.liveCandle);
 
   const buildChart = useCallback(() => {
     if (!containerRef.current) return;
@@ -100,19 +100,17 @@ export default function TradingChart() {
     return () => cleanup?.();
   }, [buildChart]);
 
-  // Load data on timeframe change
+  // Load historical data from API (includes live candle appended by backend)
   useEffect(() => {
     async function loadData() {
       try {
-        const res: any = await api.getHistorical(timeframe, 1000);
+        const res: any = await api.getHistorical(timeframe, 2000);
         const bars = res.data || res;
         if (!Array.isArray(bars) || bars.length === 0) return;
 
-        // Format time for lightweight-charts
         const formatted = bars.map((b: any) => {
           let t = b.time;
           if (typeof t === 'string') {
-            // Convert to YYYY-MM-DD format for daily or timestamp for intraday
             const d = new Date(t.replace(/-/g, '/').replace('T', ' '));
             if (timeframe === '1D' || timeframe === '1W') {
               t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -151,32 +149,40 @@ export default function TradingChart() {
     loadData();
   }, [timeframe, chartType]);
 
-  // Append live price tick
+  // Update the live candle in real-time from WebSocket
   useEffect(() => {
-    if (!livePrice) return;
+    if (!liveCandle) return;
 
-    const now = new Date();
+    // Format time to match chart format
     let time: Time;
     if (timeframe === '1D' || timeframe === '1W') {
-      time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}` as Time;
+      // liveCandle.time is "2026-04-28" already
+      time = liveCandle.time as Time;
     } else {
-      time = Math.floor(now.getTime() / 1000) as Time;
+      const d = new Date(liveCandle.time);
+      time = Math.floor(d.getTime() / 1000) as Time;
     }
 
-    const p = livePrice.price;
     if (candleRef.current) {
       candleRef.current.update({
         time,
-        open: p - 0.5,
-        high: livePrice.high || p + 1,
-        low: livePrice.low || p - 1,
-        close: p,
+        open: liveCandle.open,
+        high: liveCandle.high,
+        low: liveCandle.low,
+        close: liveCandle.close,
       });
     }
     if (lineRef.current) {
-      lineRef.current.update({ time, value: p });
+      lineRef.current.update({ time, value: liveCandle.close });
     }
-  }, [livePrice, timeframe]);
+    if (volumeRef.current) {
+      volumeRef.current.update({
+        time,
+        value: liveCandle.volume || 0,
+        color: liveCandle.close >= liveCandle.open ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)',
+      });
+    }
+  }, [liveCandle, timeframe]);
 
   return (
     <div className="card flex flex-col h-full">

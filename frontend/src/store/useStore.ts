@@ -4,6 +4,7 @@ import type { LivePrice, TechnicalAnalysis, TradingSignal, TradeRecord, Position
 interface AppState {
   // Market
   livePrice: LivePrice | null;
+  liveCandle: { time: string; open: number; high: number; low: number; close: number; volume: number } | null;
   connected: boolean;
   technicalAnalysis: TechnicalAnalysis | null;
   tradingSignal: TradingSignal | null;
@@ -14,6 +15,7 @@ interface AppState {
 
   // UI
   sidebarOpen: boolean;
+  currentPage: 'dashboard' | 'analytics';
 
   // Trading
   trades: TradeRecord[];
@@ -24,30 +26,25 @@ interface AppState {
   // Predictions
   predictions: PredictionPoint[];
 
-  // Price Alerts
-  alerts: { id: number; price: number; direction: 'above' | 'below'; triggered: boolean }[];
-
   // Actions
   setLivePrice: (p: LivePrice) => void;
+  setLiveCandle: (c: any) => void;
   setConnected: (c: boolean) => void;
   setTechnicalAnalysis: (t: TechnicalAnalysis) => void;
   setTradingSignal: (s: TradingSignal) => void;
   setTimeframe: (t: Timeframe) => void;
   setChartType: (c: ChartType) => void;
   toggleSidebar: () => void;
+  setPage: (p: 'dashboard' | 'analytics') => void;
   setTrades: (t: TradeRecord[]) => void;
   setPositions: (p: PositionRecord[]) => void;
   setEquity: (e: EquityPoint[]) => void;
   setPredictions: (p: PredictionPoint[]) => void;
-  addAlert: (price: number, direction: 'above' | 'below') => void;
-  removeAlert: (id: number) => void;
-  triggerAlert: (id: number) => void;
 }
-
-let alertIdCounter = 0;
 
 export const useStore = create<AppState>((set) => ({
   livePrice: null,
+  liveCandle: null,
   connected: false,
   technicalAnalysis: null,
   tradingSignal: null,
@@ -56,6 +53,7 @@ export const useStore = create<AppState>((set) => ({
   chartType: 'candlestick',
 
   sidebarOpen: true,
+  currentPage: 'dashboard',
 
   trades: [],
   positions: [],
@@ -64,26 +62,17 @@ export const useStore = create<AppState>((set) => ({
 
   predictions: [],
 
-  alerts: [],
-
   setLivePrice: (p) => set({ livePrice: p }),
+  setLiveCandle: (c) => set({ liveCandle: c }),
   setConnected: (c) => set({ connected: c }),
   setTechnicalAnalysis: (t) => set({ technicalAnalysis: t }),
   setTradingSignal: (s) => set({ tradingSignal: s }),
   setTimeframe: (t) => set({ timeframe: t }),
   setChartType: (c) => set({ chartType: c }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  setPage: (p) => set({ currentPage: p }),
   setTrades: (t) => set({ trades: t }),
   setPositions: (p) => set({ positions: p }),
   setEquity: (e) => set({ equity: e, balance: e.length > 0 ? e[e.length - 1].balance : 10000 }),
   setPredictions: (p) => set({ predictions: p }),
-  addAlert: (price, direction) =>
-    set((s) => ({
-      alerts: [...s.alerts, { id: ++alertIdCounter, price, direction, triggered: false }],
-    })),
-  removeAlert: (id) => set((s) => ({ alerts: s.alerts.filter((a) => a.id !== id) })),
-  triggerAlert: (id) =>
-    set((s) => ({
-      alerts: s.alerts.map((a) => (a.id === id ? { ...a, triggered: true } : a)),
-    })),
 }));

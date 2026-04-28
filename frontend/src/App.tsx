@@ -14,10 +14,13 @@ import EquityCurve from './components/EquityCurve';
 import PriceAlerts from './components/PriceAlerts';
 import PerformanceSummary from './components/PerformanceSummary';
 import MarketInsights from './components/MarketInsights';
+import AnalyticsPage from './components/AnalyticsPage';
 
 export default function App() {
   useWebSocket();
 
+  const currentPage = useStore((s) => s.currentPage);
+  const setPage = useStore((s) => s.setPage);
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const setTechnicalAnalysis = useStore((s) => s.setTechnicalAnalysis);
   const setTradingSignal = useStore((s) => s.setTradingSignal);
@@ -49,6 +52,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, [setTechnicalAnalysis, setTradingSignal, setTrades, setPositions, setEquity]);
 
+  // ── Analytics Page ──
+  if (currentPage === 'analytics') {
+    return <AnalyticsPage onBack={() => setPage('dashboard')} />;
+  }
+
+  // ── Dashboard Page ──
   return (
     <div className="min-h-screen bg-surface-900 flex flex-col">
       <Header />
@@ -56,7 +65,7 @@ export default function App() {
       {/* ═══════════════ CHART + SIDEBAR AREA ═══════════════ */}
       <div className="flex flex-1 min-h-0">
         {/* Chart — expands to fill available space */}
-        <div className={`flex-1 transition-all duration-300 ease-in-out min-w-0`}>
+        <div className="flex-1 transition-all duration-300 ease-in-out min-w-0">
           <div className="h-[calc(100vh-3.5rem)]">
             <TradingChart />
           </div>

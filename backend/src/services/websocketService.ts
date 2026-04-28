@@ -31,8 +31,16 @@ export function initializeWebSocket(httpServer: HttpServer): SocketIOServer {
   priceInterval = setInterval(async () => {
     if (!io) return;
     try {
-      const price = await marketService.getLivePrice();
+      // Use tickLivePrice to simulate small movements between API calls
+      const price = await marketService.tickLivePrice();
       io.emit('live-price', price);
+
+      // Also emit the current live candle so chart can update in real-time
+      const liveCandle = marketService.getCurrentLiveCandle();
+      if (liveCandle) {
+        io.emit('live-candle', liveCandle);
+      }
+
       await tradeService.updatePositionPrices(price.price);
       io.emit('positions-update', await tradeService.getOpenPositions());
     } catch {}
