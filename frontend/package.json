@@ -1,17 +1,29 @@
 {
   "name": "goldsense-ai-frontend",
-  "version": "1.0.0",
-  "description": "GoldSense AI - Intelligent XAU/USD Trading Companion Frontend",
+  "private": true,
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npx tailwindcss -i ./css/input.css -o ./css/style.css --watch",
-    "build": "npx tailwindcss -i ./css/input.css -o ./css/style.css --minify",
-    "serve": "npx live-server . --port=3001 --watch=./css/style.css,./js/*.js,./index.html"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lightweight-charts": "^4.2.1",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "socket.io-client": "^4.8.0",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.21",
-    "live-server": "^1.2.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18"
+    "tailwindcss": "^3.4.18",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.3"
   }
 }

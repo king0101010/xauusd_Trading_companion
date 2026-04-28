@@ -1,0 +1,10 @@
+{
+  "MAE": 76.74,
+  "RMSE": 129.05,
+  "R2": 0.9,
+  "MAPE": 3.04,
+  "Model_Accuracy": 96.96,
+  "Trend_Accuracy": 60.28,
+  "Cumulative_Return": 557.13,
+  "Sharpe_Ratio": 4.47
+}

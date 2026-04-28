@@ -1,29 +1,13 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.venv/
-backend/python/outputs/
-backend/python/uploads/
-*.h5
-
-# Node.js
 node_modules/
-npm-debug.log
-package-lock.json
-
-# Environment & logs
+dist/
 .env
 *.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE / Editor
-.vscode/
-.idea/
-
-# Temp
-tmp/
+__pycache__/
+*.pyc
+.venv/
+frontend/dist/
+backend/dist/
+backend/python/outputs/*.h5
+backend/python/outputs/*.pkl
+backend/python/outputs/*.save
+backend/python/uploads/

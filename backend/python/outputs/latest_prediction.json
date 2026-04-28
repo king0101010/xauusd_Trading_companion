@@ -1,0 +1,9 @@
+{
+  "date": "2025-06-06",
+  "actual_price": 3360.46,
+  "predicted_price": 2922.8598677215577,
+  "confidence_score": 0.6154973419024025,
+  "direction": "DOWN",
+  "trend_symbol": "\ud83d\udcc9",
+  "trade_suggestion": "SELL"
+}
