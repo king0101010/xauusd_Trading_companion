@@ -13,6 +13,7 @@ import SignalsPanel from './components/SignalsPanel';
 import EquityCurve from './components/EquityCurve';
 import PriceAlerts from './components/PriceAlerts';
 import PerformanceSummary from './components/PerformanceSummary';
+import MarketInsights from './components/MarketInsights';
 
 export default function App() {
   useWebSocket();
@@ -79,6 +80,9 @@ export default function App() {
 
       {/* ═══════════════ BELOW FOLD (scroll down) ═══════════════ */}
       <div className="p-3 space-y-3">
+        {/* AI Market Insights — Full width feature section */}
+        <MarketInsights />
+
         {/* Row 1: Overview cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <MarketOverview />

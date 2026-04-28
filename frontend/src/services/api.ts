@@ -22,6 +22,7 @@ export const api = {
   getTechnicalAnalysis: () => get('/api/market/technical-analysis'),
   getTradingSignals: () => get('/api/market/trading-signals'),
   getApiStatus: () => get('/api/market/api-status'),
+  getMarketInsights: () => get('/api/market/insights'),
 
   runPredict: () => get('/api/predictions/predict'),
   getPredictionData: () => get('/api/predictions/prediction-data'),
