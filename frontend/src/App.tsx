@@ -11,34 +11,35 @@ import MarketOverview from './components/MarketOverview';
 import TechnicalIndicators from './components/TechnicalIndicators';
 import SignalsPanel from './components/SignalsPanel';
 import EquityCurve from './components/EquityCurve';
-import SimulationControls from './components/SimulationControls';
+import PriceAlerts from './components/PriceAlerts';
+import PerformanceSummary from './components/PerformanceSummary';
 
 export default function App() {
-  // Connect WebSocket
   useWebSocket();
 
+  const sidebarOpen = useStore((s) => s.sidebarOpen);
   const setTechnicalAnalysis = useStore((s) => s.setTechnicalAnalysis);
   const setTradingSignal = useStore((s) => s.setTradingSignal);
   const setTrades = useStore((s) => s.setTrades);
   const setPositions = useStore((s) => s.setPositions);
   const setEquity = useStore((s) => s.setEquity);
 
-  // Periodic data fetching
+  // Periodic data refresh
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ta, signals, trades, positions, equity] = await Promise.allSettled([
+        const results = await Promise.allSettled([
           api.getTechnicalAnalysis(),
           api.getTradingSignals(),
           api.getTradeHistory(),
           api.getPositions(),
           api.getEquity(),
         ]);
-        if (ta.status === 'fulfilled') setTechnicalAnalysis(ta.value as any);
-        if (signals.status === 'fulfilled') setTradingSignal(signals.value as any);
-        if (trades.status === 'fulfilled') setTrades(trades.value as any);
-        if (positions.status === 'fulfilled') setPositions(positions.value as any);
-        if (equity.status === 'fulfilled') setEquity(equity.value as any);
+        if (results[0].status === 'fulfilled') setTechnicalAnalysis(results[0].value as any);
+        if (results[1].status === 'fulfilled') setTradingSignal(results[1].value as any);
+        if (results[2].status === 'fulfilled') setTrades(results[2].value as any);
+        if (results[3].status === 'fulfilled') setPositions(results[3].value as any);
+        if (results[4].status === 'fulfilled') setEquity(results[4].value as any);
       } catch {}
     }
 
@@ -51,30 +52,52 @@ export default function App() {
     <div className="min-h-screen bg-surface-900 flex flex-col">
       <Header />
 
-      <main className="flex-1 p-3 gap-3 grid grid-cols-12 grid-rows-[1fr_auto] overflow-hidden">
-        {/* ── LEFT: Chart (8 cols) ── */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-3 min-h-0">
-          <div className="flex-1 min-h-[450px]">
+      {/* ═══════════════ CHART + SIDEBAR AREA ═══════════════ */}
+      <div className="flex flex-1 min-h-0">
+        {/* Chart — expands to fill available space */}
+        <div className={`flex-1 transition-all duration-300 ease-in-out min-w-0`}>
+          <div className="h-[calc(100vh-3.5rem)]">
             <TradingChart />
           </div>
-          <SimulationControls />
         </div>
 
-        {/* ── RIGHT: Panels (4 cols) ── */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-4rem)] pb-3">
+        {/* Sidebar — slides in/out */}
+        <div
+          className={`transition-all duration-300 ease-in-out overflow-hidden border-l border-white/5 bg-surface-800/50 ${
+            sidebarOpen ? 'w-80' : 'w-0'
+          }`}
+        >
+          <div className="w-80 h-[calc(100vh-3.5rem)] overflow-y-auto p-3 space-y-3">
+            <TradingPanel />
+            <PositionManager />
+            <SignalsPanel />
+            <TechnicalIndicators />
+            <PriceAlerts />
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════ BELOW FOLD (scroll down) ═══════════════ */}
+      <div className="p-3 space-y-3">
+        {/* Row 1: Overview cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <MarketOverview />
-          <TradingPanel />
-          <PositionManager />
-          <SignalsPanel />
-          <TechnicalIndicators />
+          <PerformanceSummary />
         </div>
 
-        {/* ── BOTTOM: Full width ── */}
-        <div className="col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Row 2: Trade journal + Equity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <TradeHistory />
           <EquityCurve />
         </div>
-      </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5 py-4 px-6 text-center">
+        <p className="text-[10px] text-gray-600">
+          GoldSense AI — AI-Powered XAU/USD Trading Companion • Paper Trading Only • Not Financial Advice
+        </p>
+      </footer>
     </div>
   );
 }

@@ -1,26 +1,28 @@
-import { Wifi, WifiOff, TrendingUp, TrendingDown } from 'lucide-react';
+import { Wifi, WifiOff, TrendingUp, TrendingDown, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 export default function Header() {
   const livePrice = useStore((s) => s.livePrice);
   const connected = useStore((s) => s.connected);
   const balance = useStore((s) => s.balance);
+  const sidebarOpen = useStore((s) => s.sidebarOpen);
+  const toggleSidebar = useStore((s) => s.toggleSidebar);
 
   const priceUp = (livePrice?.change ?? 0) >= 0;
 
   return (
-    <header className="h-14 bg-surface-800/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 sticky top-0 z-50">
+    <header className="h-14 bg-surface-800/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-50">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center shadow-lg shadow-gold-500/20">
           <span className="text-surface-900 font-extrabold text-sm">G</span>
         </div>
-        <div>
+        <div className="hidden sm:block">
           <h1 className="text-base font-bold text-white leading-tight">GoldSense AI</h1>
           <p className="text-[10px] text-gray-500 leading-tight">XAU/USD Trading Companion</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 lg:gap-6">
         {/* Balance */}
         <div className="hidden md:block text-right">
           <p className="text-[10px] text-gray-500">Paper Balance</p>
@@ -57,6 +59,15 @@ export default function Header() {
             </>
           )}
         </div>
+
+        {/* Sidebar toggle */}
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-all"
+          title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+        >
+          {sidebarOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+        </button>
       </div>
     </header>
   );
