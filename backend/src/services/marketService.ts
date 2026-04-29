@@ -15,6 +15,25 @@ interface OHLCBar {
   volume: number;
 }
 
+// Extended bar with real technical indicators from the dataset
+interface RichBar extends OHLCBar {
+  rsi?: number;
+  macd?: number;
+  macdSignal?: number;
+  sma20?: number;
+  sma50?: number;
+  ema20?: number;
+  ema50?: number;
+  bbUpper?: number;
+  bbLower?: number;
+  bbMid?: number;
+  returns?: number;
+  volatility30?: number;
+  trend?: number;
+  targetNextClose?: number;
+  targetDirection?: number;
+}
+
 interface LivePriceData {
   symbol: string;
   price: number;
@@ -30,78 +49,109 @@ interface LivePriceData {
 }
 
 // In-memory caches
-let dailyData: OHLCBar[] = [];
-let hourlyData: OHLCBar[] = [];
+let dailyData: RichBar[] = [];
 let lastApiCall = 0;
 let cachedLiveData: LivePriceData | null = null;
-const CACHE_DURATION = 30 * 1000; // 30 seconds — much more responsive than 1 hour
+const CACHE_DURATION = 30 * 1000; // 30 seconds
 let apiCallCount = 0;
 let lastCallTimestamp = 0;
 
 // ── Live candle accumulator ──
-// Tracks the current live candle being built from price ticks
 let currentLiveCandle: OHLCBar | null = null;
-let liveCandleHistory: OHLCBar[] = []; // Completed live candles
-let lastCandleDate = ''; // e.g. "2026-04-28"
+let liveCandleHistory: OHLCBar[] = [];
+let lastCandleDate = '';
 
-function parseCsvLine(line: string, sep = ';'): string[] {
-  return line.split(sep).map((s) => s.trim());
+// ── Latest real indicators (from last row of dataset) ──
+let latestIndicators: RichBar | null = null;
+
+function parseFloat2(s: string): number {
+  const v = parseFloat(s);
+  return isNaN(v) ? 0 : v;
 }
 
 export function loadHistoricalData(): void {
   try {
-    const dailyPath = path.join(pythonDir, 'XAU_1d_data.csv');
-    const hourlyPath = path.join(pythonDir, 'XAU_1h_data.csv');
-
-    if (fs.existsSync(dailyPath)) {
-      const lines = fs.readFileSync(dailyPath, 'utf8').trim().split('\n');
+    // ── Load the main enriched dataset ──
+    const richPath = path.join(pythonDir, 'xauusd_gold_dataset.csv');
+    if (fs.existsSync(richPath)) {
+      const lines = fs.readFileSync(richPath, 'utf8').trim().split('\n');
       dailyData = [];
+      // Header: datetime,open,high,low,close,returns,volatility_30,sma_20,sma_50,ema_20,ema_50,rsi_14,macd,macd_signal,bb_mid,bb_std,bb_upper,bb_lower,trend,target_next_close,target_direction,log_returns,lag_1,lag_2,lag_3,return_7,return_14
       for (let i = 1; i < lines.length; i++) {
-        const cols = parseCsvLine(lines[i]);
-        if (cols.length >= 6) {
-          dailyData.push({
-            time: cols[0].replace(/\.\d{2}:\d{2}$/, '').replace(/\./g, '-').trim(),
-            open: parseFloat(cols[1]) || 0,
-            high: parseFloat(cols[2]) || 0,
-            low: parseFloat(cols[3]) || 0,
-            close: parseFloat(cols[4]) || 0,
-            volume: parseFloat(cols[5]) || 0,
-          });
-        }
-      }
-      console.log(`📊 Loaded ${dailyData.length} daily bars (${dailyData[0]?.time} → ${dailyData[dailyData.length - 1]?.time})`);
-    }
+        const c = lines[i].split(',');
+        if (c.length < 5) continue;
 
-    if (fs.existsSync(hourlyPath)) {
-      const lines = fs.readFileSync(hourlyPath, 'utf8').trim().split('\n');
-      hourlyData = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseCsvLine(lines[i]);
-        if (cols.length >= 6) {
-          hourlyData.push({
-            time: cols[0].replace(/\./g, '-').replace(' ', 'T').trim(),
-            open: parseFloat(cols[1]) || 0,
-            high: parseFloat(cols[2]) || 0,
-            low: parseFloat(cols[3]) || 0,
-            close: parseFloat(cols[4]) || 0,
-            volume: parseFloat(cols[5]) || 0,
-          });
-        }
+        const bar: RichBar = {
+          time: c[0].trim(), // Already "YYYY-MM-DD"
+          open: parseFloat2(c[1]),
+          high: parseFloat2(c[2]),
+          low: parseFloat2(c[3]),
+          close: parseFloat2(c[4]),
+          volume: 0, // Not in dataset — set 0
+          returns: parseFloat2(c[5]),
+          volatility30: parseFloat2(c[6]),
+          sma20: parseFloat2(c[7]),
+          sma50: parseFloat2(c[8]),
+          ema20: parseFloat2(c[9]),
+          ema50: parseFloat2(c[10]),
+          rsi: parseFloat2(c[11]),
+          macd: parseFloat2(c[12]),
+          macdSignal: parseFloat2(c[13]),
+          bbMid: parseFloat2(c[14]),
+          bbUpper: parseFloat2(c[16]),
+          bbLower: parseFloat2(c[17]),
+          trend: parseFloat2(c[18]),
+          targetNextClose: parseFloat2(c[19]),
+          targetDirection: parseFloat2(c[20]),
+        };
+
+        // Skip bars with 0 OHLC
+        if (bar.open === 0 && bar.close === 0) continue;
+        dailyData.push(bar);
       }
-      console.log(`📊 Loaded ${hourlyData.length} hourly bars`);
+
+      // Store the latest indicators for the signals/analysis panels
+      if (dailyData.length > 0) {
+        latestIndicators = dailyData[dailyData.length - 1];
+      }
+
+      console.log(`📊 Loaded ${dailyData.length} enriched daily bars (${dailyData[0]?.time} → ${dailyData[dailyData.length - 1]?.time})`);
+      console.log(`   Last RSI: ${latestIndicators?.rsi?.toFixed(1)}, MACD: ${latestIndicators?.macd?.toFixed(2)}, Trend: ${latestIndicators?.trend}`);
+    } else {
+      console.warn('⚠️  xauusd_gold_dataset.csv not found, falling back to old CSV');
+      loadOldCsv();
     }
   } catch (err: any) {
     console.error('❌ Error loading historical data:', err.message);
   }
 }
 
-// ── Update the live candle with a new price tick ──
+function loadOldCsv() {
+  const dailyPath = path.join(pythonDir, 'XAU_1d_data.csv');
+  if (!fs.existsSync(dailyPath)) return;
+  const lines = fs.readFileSync(dailyPath, 'utf8').trim().split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(';').map((s: string) => s.trim());
+    if (cols.length >= 6) {
+      dailyData.push({
+        time: cols[0].replace(/\.\d{2}:\d{2}$/, '').replace(/\./g, '-').trim(),
+        open: parseFloat2(cols[1]),
+        high: parseFloat2(cols[2]),
+        low: parseFloat2(cols[3]),
+        close: parseFloat2(cols[4]),
+        volume: parseFloat2(cols[5]),
+      });
+    }
+  }
+  console.log(`📊 Loaded ${dailyData.length} daily bars (fallback CSV)`);
+}
+
+// ── Update live candle with tick ──
 export function updateLiveCandle(price: number): void {
   const now = new Date();
-  const today = now.toISOString().split('T')[0]; // "2026-04-28"
+  const today = now.toISOString().split('T')[0];
 
   if (!currentLiveCandle || lastCandleDate !== today) {
-    // New day → finalize previous candle and start a new one
     if (currentLiveCandle && lastCandleDate !== today) {
       liveCandleHistory.push({ ...currentLiveCandle });
     }
@@ -115,7 +165,6 @@ export function updateLiveCandle(price: number): void {
     };
     lastCandleDate = today;
   } else {
-    // Same day → update the live candle
     currentLiveCandle.high = Math.max(currentLiveCandle.high, price);
     currentLiveCandle.low = Math.min(currentLiveCandle.low, price);
     currentLiveCandle.close = price;
@@ -128,21 +177,19 @@ export function getHistoricalData(
   limit: number = 500,
   offset: number = 0
 ): { data: OHLCBar[]; total: number } {
-  let source = timeframe === '1H' ? hourlyData : dailyData;
+  let source: OHLCBar[] = dailyData;
 
-  if (timeframe === '4H' && hourlyData.length > 0) {
-    source = resampleBars(hourlyData, 4);
-  } else if (timeframe === '1W' && dailyData.length > 0) {
+  if (timeframe === '1W') {
     source = resampleBars(dailyData, 5);
   }
 
-  // Append completed live candles + current live candle
+  // Append live candles
   const combined = [...source, ...liveCandleHistory];
   if (currentLiveCandle) {
     combined.push(currentLiveCandle);
   }
 
-  // Deduplicate by time (live candle replaces CSV bar for same date)
+  // Deduplicate by time
   const byTime = new Map<string, OHLCBar>();
   for (const bar of combined) {
     byTime.set(bar.time, bar);
@@ -155,7 +202,6 @@ export function getHistoricalData(
   return { data: deduped.slice(start, end), total };
 }
 
-// ── Get just the current live candle (for WebSocket real-time updates) ──
 export function getCurrentLiveCandle(): OHLCBar | null {
   return currentLiveCandle ? { ...currentLiveCandle } : null;
 }
@@ -177,9 +223,9 @@ function resampleBars(bars: OHLCBar[], period: number): OHLCBar[] {
   return result;
 }
 
+// ── API rate limiting ──
 function canMakeAPICall(): boolean {
   const now = Date.now();
-  // Reset counter every 5 minutes (MetalPriceAPI free tier: ~300/month ≈ 10/day)
   if (lastCallTimestamp < now - 300000) {
     apiCallCount = 0;
     lastCallTimestamp = now;
@@ -204,7 +250,7 @@ async function fetchFromMetalPriceAPI(): Promise<LivePriceData | null> {
         const price = 1 / data.rates.XAU;
         const prevClose = dailyData.length > 0 ? dailyData[dailyData.length - 1].close : price;
         const change = price - prevClose;
-        console.log(`✅ Live gold price: $${price.toFixed(2)} (from MetalPriceAPI)`);
+        console.log(`✅ Live gold price: $${price.toFixed(2)} (MetalPriceAPI)`);
         return {
           symbol: 'XAU/USD',
           price: parseFloat(price.toFixed(2)),
@@ -214,7 +260,7 @@ async function fetchFromMetalPriceAPI(): Promise<LivePriceData | null> {
           change_percent: parseFloat(((change / prevClose) * 100).toFixed(2)),
           high: parseFloat((price * 1.003).toFixed(2)),
           low: parseFloat((price * 0.997).toFixed(2)),
-          volume: Math.floor(Math.random() * 50000 + 20000),
+          volume: 0,
           success: true,
         };
       } else {
@@ -230,10 +276,8 @@ async function fetchFromMetalPriceAPI(): Promise<LivePriceData | null> {
 }
 
 function generateSimulatedPrice(): LivePriceData {
-  // Use a more realistic base from last known close
   const lastClose = dailyData.length > 0 ? dailyData[dailyData.length - 1].close : 3350;
-  // Simulate small tick movement
-  const tick = (Math.random() - 0.5) * 5; // ±$2.5 per tick
+  const tick = (Math.random() - 0.5) * 5;
   const price = (cachedLiveData?.price ?? lastClose) + tick;
   const change = price - lastClose;
   return {
@@ -245,7 +289,7 @@ function generateSimulatedPrice(): LivePriceData {
     change_percent: parseFloat(((change / lastClose) * 100).toFixed(2)),
     high: parseFloat((price + Math.abs(tick) * 2).toFixed(2)),
     low: parseFloat((price - Math.abs(tick) * 2).toFixed(2)),
-    volume: Math.floor(Math.random() * 50000 + 20000),
+    volume: 0,
     success: false,
     note: 'Simulated — MetalPriceAPI unavailable',
   };
@@ -253,8 +297,6 @@ function generateSimulatedPrice(): LivePriceData {
 
 export async function getLivePrice(): Promise<LivePriceData> {
   const now = Date.now();
-
-  // Try the real API if cache expired
   if (!cachedLiveData || now - lastApiCall > CACHE_DURATION) {
     if (canMakeAPICall()) {
       apiCallCount++;
@@ -262,28 +304,21 @@ export async function getLivePrice(): Promise<LivePriceData> {
       if (live) {
         cachedLiveData = live;
         lastApiCall = now;
-        // Update the live candle with real price
         updateLiveCandle(live.price);
         return live;
       }
     }
-
-    // Fallback to simulation
     const sim = generateSimulatedPrice();
     cachedLiveData = sim;
     lastApiCall = now;
     updateLiveCandle(sim.price);
     return sim;
   }
-
   return cachedLiveData;
 }
 
-// Called by WebSocket service every 5 seconds — always updates the live candle
 export async function tickLivePrice(): Promise<LivePriceData> {
   const now = Date.now();
-
-  // Try real API every 5 minutes
   if (!cachedLiveData || now - lastApiCall > 300000) {
     if (canMakeAPICall()) {
       apiCallCount++;
@@ -297,9 +332,8 @@ export async function tickLivePrice(): Promise<LivePriceData> {
     }
   }
 
-  // Between API calls, simulate small tick movements
   if (cachedLiveData) {
-    const tick = (Math.random() - 0.5) * 3; // ±$1.5 small tick
+    const tick = (Math.random() - 0.5) * 3;
     const newPrice = cachedLiveData.price + tick;
     const lastClose = dailyData.length > 0 ? dailyData[dailyData.length - 1].close : newPrice;
 
@@ -321,51 +355,133 @@ export async function tickLivePrice(): Promise<LivePriceData> {
   return getLivePrice();
 }
 
+// ═══════════════════════════════════════════════════════
+// REAL Technical Analysis — powered by dataset indicators
+// ═══════════════════════════════════════════════════════
 export function getTechnicalAnalysis(currentPrice: number) {
-  const rsi = 45 + Math.random() * 25;
-  const macd = (Math.random() - 0.5) * 1.5;
-  const momentum = (Math.random() - 0.5) * 2;
-  const volatility = 0.008 + Math.random() * 0.015;
+  const li = latestIndicators;
 
+  // Use real indicators from dataset, fallback to computed values
+  const rsi = li?.rsi && li.rsi > 0 ? li.rsi : 50;
+  const macd = li?.macd ?? 0;
+  const macdSignal = li?.macdSignal ?? 0;
+  const sma20 = li?.sma20 || currentPrice;
+  const sma50 = li?.sma50 || currentPrice;
+  const ema20 = li?.ema20 || currentPrice;
+  const ema50 = li?.ema50 || currentPrice;
+  const bbUpper = li?.bbUpper || currentPrice * 1.015;
+  const bbLower = li?.bbLower || currentPrice * 0.985;
+  const volatility = li?.volatility30 || 0.015;
+
+  // Derive momentum from MACD histogram
+  const momentum = macd - macdSignal;
+
+  // Derive sentiment from real indicators
   let sentiment = 'NEUTRAL';
   let strength = 0.5;
-  if (rsi > 65 && macd > 0.3) { sentiment = 'BULLISH'; strength = 0.6 + Math.random() * 0.3; }
-  else if (rsi < 40 && macd < -0.3) { sentiment = 'BEARISH'; strength = 0.6 + Math.random() * 0.3; }
+
+  if (rsi > 60 && macd > macdSignal && currentPrice > ema20) {
+    sentiment = 'BULLISH';
+    strength = Math.min(0.95, 0.6 + (rsi - 50) / 100 + (macd > 0 ? 0.1 : 0));
+  } else if (rsi < 40 && macd < macdSignal && currentPrice < ema20) {
+    sentiment = 'BEARISH';
+    strength = Math.min(0.95, 0.6 + (50 - rsi) / 100 + (macd < 0 ? 0.1 : 0));
+  } else if (rsi > 50 && macd > macdSignal) {
+    sentiment = 'BULLISH';
+    strength = 0.55;
+  } else if (rsi < 50 && macd < macdSignal) {
+    sentiment = 'BEARISH';
+    strength = 0.55;
+  }
 
   return {
     rsi: parseFloat(rsi.toFixed(1)),
     macd: parseFloat(macd.toFixed(3)),
-    bollinger_upper: parseFloat((currentPrice * 1.015).toFixed(2)),
-    bollinger_lower: parseFloat((currentPrice * 0.985).toFixed(2)),
-    momentum: parseFloat(momentum.toFixed(2)),
-    volatility: parseFloat(volatility.toFixed(3)),
+    macdSignal: parseFloat(macdSignal.toFixed(3)),
+    sma20: parseFloat(sma20.toFixed(2)),
+    sma50: parseFloat(sma50.toFixed(2)),
+    ema20: parseFloat(ema20.toFixed(2)),
+    ema50: parseFloat(ema50.toFixed(2)),
+    bollinger_upper: parseFloat(bbUpper.toFixed(2)),
+    bollinger_lower: parseFloat(bbLower.toFixed(2)),
+    momentum: parseFloat(momentum.toFixed(3)),
+    volatility: parseFloat(volatility.toFixed(4)),
     sentiment,
     strength: parseFloat(strength.toFixed(2)),
     timestamp: new Date().toISOString(),
+    dataSource: li ? 'Dataset (Real)' : 'Computed',
   };
 }
 
+// ═══════════════════════════════════════════════════════
+// REAL Trading Signals — powered by dataset prediction columns
+// ═══════════════════════════════════════════════════════
 export function getTradingSignals(analysis: any) {
+  const li = latestIndicators;
   const { rsi, macd, sentiment, strength } = analysis;
-  let signal = 'HOLD', confidence = 0.4 + Math.random() * 0.3;
-  let trend = Math.random() > 0.5 ? 'UP' : 'DOWN';
-  let recommendation = 'Market indecisive. Wait for clearer signals.';
+
+  // Use real target_direction from dataset if available
+  const datasetDirection = li?.targetDirection; // 1 = up, 0 = down
+  const targetPrice = li?.targetNextClose;
+  const currentClose = li?.close || 0;
+
+  let signal = 'HOLD';
+  let confidence = 0.5;
+  let trend = 'SIDEWAYS';
+  let recommendation = 'Market conditions are mixed. Wait for clearer signals.';
   let risk_level = 'MEDIUM';
 
-  if (sentiment === 'BULLISH' && strength > 0.7 && rsi < 70) {
-    signal = 'BUY'; confidence = 0.7 + Math.random() * 0.2; trend = 'UP';
-    recommendation = 'Strong bullish momentum. Consider long positions.';
-    risk_level = rsi > 65 ? 'MEDIUM' : 'LOW';
-  } else if (sentiment === 'BEARISH' && strength > 0.7 && rsi > 30) {
-    signal = 'SELL'; confidence = 0.7 + Math.random() * 0.2; trend = 'DOWN';
-    recommendation = 'Bearish pressure building. Consider short positions.';
-    risk_level = rsi < 35 ? 'MEDIUM' : 'LOW';
+  if (datasetDirection !== undefined && targetPrice && targetPrice > 0) {
+    // Use real prediction from dataset
+    const predictedMove = ((targetPrice - currentClose) / currentClose) * 100;
+
+    if (datasetDirection === 1 && sentiment !== 'BEARISH') {
+      signal = 'BUY';
+      trend = 'UP';
+      confidence = Math.min(0.92, 0.65 + strength * 0.2);
+      recommendation = `Dataset predicts upward movement. Target: $${targetPrice.toFixed(2)} (${predictedMove >= 0 ? '+' : ''}${predictedMove.toFixed(2)}%). RSI at ${rsi.toFixed(1)} supports the move.`;
+      risk_level = rsi > 70 ? 'HIGH' : rsi > 60 ? 'MEDIUM' : 'LOW';
+    } else if (datasetDirection === 0 && sentiment !== 'BULLISH') {
+      signal = 'SELL';
+      trend = 'DOWN';
+      confidence = Math.min(0.92, 0.65 + strength * 0.2);
+      recommendation = `Dataset predicts downward movement. Target: $${targetPrice.toFixed(2)} (${predictedMove >= 0 ? '+' : ''}${predictedMove.toFixed(2)}%). Consider short positions or tightening stops.`;
+      risk_level = rsi < 30 ? 'HIGH' : rsi < 40 ? 'MEDIUM' : 'LOW';
+    } else {
+      // Dataset and indicators disagree — caution
+      signal = 'HOLD';
+      trend = datasetDirection === 1 ? 'UP' : 'DOWN';
+      confidence = 0.45;
+      recommendation = `Mixed signals: dataset predicts ${datasetDirection === 1 ? 'UP' : 'DOWN'} but indicators show ${sentiment}. Wait for confirmation before entering.`;
+      risk_level = 'HIGH';
+    }
+  } else {
+    // Fallback to indicator-based signals
+    if (sentiment === 'BULLISH' && strength > 0.6 && rsi < 70) {
+      signal = 'BUY'; confidence = 0.6 + strength * 0.2; trend = 'UP';
+      recommendation = 'Bullish momentum with RSI not overbought. Consider long positions.';
+      risk_level = rsi > 65 ? 'MEDIUM' : 'LOW';
+    } else if (sentiment === 'BEARISH' && strength > 0.6 && rsi > 30) {
+      signal = 'SELL'; confidence = 0.6 + strength * 0.2; trend = 'DOWN';
+      recommendation = 'Bearish pressure building. Consider short positions or exits.';
+      risk_level = rsi < 35 ? 'MEDIUM' : 'LOW';
+    }
   }
 
   return {
-    signal, confidence: parseFloat(confidence.toFixed(2)), trend,
-    strength: parseFloat(strength.toFixed(2)), timeframe: '1H',
-    recommendation, risk_level, rsi, macd, timestamp: new Date().toISOString(),
+    signal,
+    confidence: parseFloat(confidence.toFixed(2)),
+    trend,
+    strength: parseFloat(strength.toFixed(2)),
+    timeframe: '1D',
+    recommendation,
+    risk_level,
+    rsi: parseFloat(rsi.toFixed(1)),
+    macd: parseFloat(macd.toFixed(3)),
+    predictedTarget: targetPrice ? parseFloat(targetPrice.toFixed(2)) : null,
+    predictedDirection: datasetDirection ?? null,
+    timestamp: new Date().toISOString(),
+    dataSource: li ? 'Dataset (Real)' : 'Computed',
   };
 }
 
@@ -373,6 +489,13 @@ export function getApiStatus() {
   const now = Date.now();
   const timeSince = now - lastApiCall;
   return {
+    dataset: {
+      source: 'xauusd_gold_dataset.csv',
+      totalBars: dailyData.length,
+      firstDate: dailyData[0]?.time,
+      lastDate: dailyData[dailyData.length - 1]?.time,
+      hasIndicators: latestIndicators !== null,
+    },
     cache: {
       hasCachedData: cachedLiveData !== null,
       lastAPICall: new Date(lastApiCall).toISOString(),
@@ -384,7 +507,6 @@ export function getApiStatus() {
     currentProvider: {
       name: 'MetalPriceAPI',
       status: cachedLiveData?.success ? 'Live' : 'Simulated',
-      apiKey: process.env.METAL_PRICE_API_KEY ? 'Set' : 'Using default',
     },
   };
 }
